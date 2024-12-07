@@ -7,4 +7,5 @@ pipeline {
                 echo 'Pipeline execution started...'
             }
         }
+    }
 }
