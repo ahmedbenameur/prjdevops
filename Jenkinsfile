@@ -13,83 +13,62 @@ pipeline {
         AWS_REGION            = "us-east-1"
     }
     stages {
-        stage('Provision Server and Database') {
+        stage('Create Database in RDS') {
             steps {
                 script {
-                    
-                    dir('my-terraform-project') {
-                        sh "terraform init"
-                        sh "terraform plan -lock=false"
-                        sh "terraform apply -lock=false --auto-approve"
-                        // Capture EC2 Public IP
-                        EC2_PUBLIC_IP = sh(
-                            script: '''
-                                terraform output instance_details |
-                                grep "instance_public_ip" |
-                                awk '{print $3}' | tr -d '"'
-                            ''',
-                            returnStdout: true
-                        ).trim()
-                        // Capture RDS Endpoint
-                        RDS_ENDPOINT = sh(
-                            script: '''
-                                terraform output rds_endpoint |
-                                grep "endpoint" | awk -F'=' '{print $2}' |
-                                tr -d '[:space:]"' | sed 's/:3306//'
-                            ''',
-                            returnStdout: true
-                        ).trim()
-                        // Capture Deployer Key URI
-                        DEPLOYER_KEY_URI = sh(
-                            script: 'terraform output deployer_key_s3_uri | tr -d \'"\'',
-                            returnStdout: true
-                        ).trim()
-
-                        // Debugging
-                        echo "EC2 Public IP: ${EC2_PUBLIC_IP}"
-                        echo "RDS Endpoint: ${RDS_ENDPOINT}"
-                        echo "Deployer Key URI: ${DEPLOYER_KEY_URI}"
+                    sh '''
+                        mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "CREATE DATABASE IF NOT EXISTS enis_tp;"
+                        mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "SHOW DATABASES;"
+                    '''
+                }
+            }
+        }
+        stage('Build Frontend Docker Image') {
+            steps {
+                dir('enis-app-tp/frontend') {
+                    script {
+                        echo 'Building Frontend Docker Image...'
+                        def frontendImage = docker.build('frontend-app')
+                        echo "Built Image: ${frontendImage.id}"
                     }
                 }
             }
         }
-        stage('Update Frontend Configuration') {
+        stage('Build Backend Docker Image') {
             steps {
-                script {
-                    dir('enis-app-tp/frontend/src') {
-                        writeFile file: 'config.js', text: """
-                            export const API_BASE_URL = 'http://${EC2_PUBLIC_IP}:8000';
-                        """
-                        sh '''
-                            echo "Contents of config.js after update:"
-                            cat config.js
-                        '''
+                dir('enis-app-tp/backend') {
+                    script {
+                        echo 'Building Backend Docker Image...'
+                        def backendImage = docker.build('backend-app')
+                        echo "Built Image: ${backendImage.id}"
                     }
                 }
             }
         }
-        stage('Update Backend Configuration') {
+        stage('Login to AWS ECR') {
             steps {
                 script {
-                    dir('enis-app-tp/backend/backend') {
-                        // Check if `settings.py` exists and update the HOST in the DATABASES section
-                        sh '''
-                            if [ -f "settings.py" ]; then
-                                echo "Found settings.py at $(pwd)"
-                            else
-                                echo "settings.py not found in $(pwd)!"
-                                exit 1
-                            fi
-
-                            echo "Before update:"
-                            grep "'HOST':" settings.py || echo "No 'HOST' field found in settings.py."
-
-                            sed -i "/'HOST':/c\\    'HOST': '${RDS_ENDPOINT}'," settings.py
-
-                            echo "After update:"
-                            grep "'HOST':" settings.py || echo "No 'HOST' field found in settings.py after update."
-                        '''
-                    }
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO_URL}
+                    """
+                }
+            }
+        }
+        stage('Tag and Push Frontend Image') {
+            steps {
+                script {
+                    echo 'Tagging and pushing Frontend Image...'
+                    sh "docker tag frontend-app:latest ${IMAGE_REPO}-frontend"
+                    sh "docker push ${IMAGE_REPO}-frontend"
+                }
+            }
+        }
+        stage('Tag and Push Backend Image') {
+            steps {
+                script {
+                    echo 'Tagging and pushing Backend Image...'
+                    sh "docker tag backend-app:latest ${IMAGE_REPO}-backend"
+                    sh "docker push ${IMAGE_REPO}-backend"
                 }
             }
         }
