@@ -12,7 +12,7 @@ pipeline {
         IMAGE_REPO            = "${ECR_REPO_URL}/${ECR_REPO_NAME}"
         AWS_REGION            = "us-east-1"
     }
-   
+   stages{
         stage('Create Database in RDS') {
     steps {
         script {
