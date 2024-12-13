@@ -1,3 +1,4 @@
+
 def EC2_PUBLIC_IP = ""
 def RDS_ENDPOINT = ""
 def DEPLOYER_KEY_URI = ""  
@@ -12,31 +13,31 @@ pipeline {
         IMAGE_REPO            = "${ECR_REPO_URL}/${ECR_REPO_NAME}"
         AWS_REGION            = "us-east-1"
     }
-   stage('Update Backend Configuration') {
-    steps {
-        script {
-            dir('enis-app-tp/backend/backend') {
-                // Check if `settings.py` exists
-                sh '''
-                    if [ -f "settings.py" ]; then
-                        echo "Found settings.py at $(pwd)"
-                    else
-                        echo "settings.py not found in $(pwd)!"
-                        exit 1
-                    fi
-                '''
-                // Update the HOST in DATABASES section
-                sh """
-                    echo "Before update:"
-                    grep "'HOST':" settings.py
+    stages {
+        stage('Update Backend Configuration') {
+            steps {
+                script {
+                    dir('enis-app-tp/backend/backend') {
+                        // Check if `settings.py` exists and update the HOST in the DATABASES section
+                        sh '''
+                            if [ -f "settings.py" ]; then
+                                echo "Found settings.py at $(pwd)"
+                            else
+                                echo "settings.py not found in $(pwd)!"
+                                exit 1
+                            fi
 
-                    sed -i "/'HOST':/c\\    'HOST': '${RDS_ENDPOINT}'," settings.py
+                            echo "Before update:"
+                            grep "'HOST':" settings.py || echo "No 'HOST' field found in settings.py."
 
-                    echo "After update:"
-                    grep "'HOST':" settings.py
-                """
+                            sed -i "/'HOST':/c\\    'HOST': '${RDS_ENDPOINT}'," settings.py
+
+                            echo "After update:"
+                            grep "'HOST':" settings.py || echo "No 'HOST' field found in settings.py after update."
+                        '''
+                    }
+                }
             }
         }
     }
-}
 }
