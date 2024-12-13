@@ -3,16 +3,14 @@ def RDS_ENDPOINT = ""  // Set RDS Endpoint here
 def DEPLOYER_KEY_URI = "" // Set the URI for the deployer's SSH key if needed
 
 pipeline {
-    agent any
+    agent any 
     environment {
-        AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
+         AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
         AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
         ECR_REPO_URL          = '682033493357.dkr.ecr.us-east-1.amazonaws.com'
         ECR_REPO_NAME         = 'enis-app'
         IMAGE_REPO            = "${ECR_REPO_URL}/${ECR_REPO_NAME}"
         AWS_REGION            = "us-east-1"
-        RDS_DB_USER           = 'dbuser' // Add as an environment variable if possible
-        RDS_DB_PASSWORD       = credentials('db_password') // Handle sensitive information securely
     }
     stages {
         stage('Create Database in RDS') {
