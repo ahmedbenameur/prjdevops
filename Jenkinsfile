@@ -23,7 +23,7 @@ pipeline {
             """
         }
     }
-}
+
         stage('Build Frontend Docker Image') {
             steps {
                 dir('enis-app-tp/frontend') {
