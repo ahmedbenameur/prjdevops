@@ -1,6 +1,6 @@
-def EC2_PUBLIC_IP = ""
-def RDS_ENDPOINT = ""
-def DEPLOYER_KEY_URI = ""  
+def EC2_PUBLIC_IP = "" // Set EC2 Public IP here if needed
+def RDS_ENDPOINT = ""  // Set RDS Endpoint here
+def DEPLOYER_KEY_URI = "" // Set the URI for the deployer's SSH key if needed
 
 pipeline {
     agent any
@@ -11,24 +11,30 @@ pipeline {
         ECR_REPO_NAME         = 'enis-app'
         IMAGE_REPO            = "${ECR_REPO_URL}/${ECR_REPO_NAME}"
         AWS_REGION            = "us-east-1"
+        RDS_DB_USER           = 'dbuser' // Add as an environment variable if possible
+        RDS_DB_PASSWORD       = credentials('db_password') // Handle sensitive information securely
     }
-   stage('Create Database in RDS') {
-    steps {
-        script {
-            sh """
-                if [ -z \"${RDS_ENDPOINT}\" ]; then
-                    echo "Error: RDS_ENDPOINT is empty"
-                    exit 1
-                fi
-                docker run --rm mysql:latest \
-                mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "CREATE DATABASE IF NOT EXISTS enis_tp;"
-                docker run --rm mysql:latest \
-                mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "SHOW DATABASES;"
-            """
-        }
-    }
-}
+    stages {
+        stage('Create Database in RDS') {
+            steps {
+                script {
+                    // Ensure RDS_ENDPOINT is set before proceeding
+                    if (RDS_ENDPOINT == "") {
+                        error "Error: RDS_ENDPOINT is empty"
+                    }
 
+                    // Create the database in RDS using MySQL
+                    sh """
+                        docker run --rm mysql:latest \
+                            mysql -h ${RDS_ENDPOINT} -P 3306 -u ${RDS_DB_USER} -p${RDS_DB_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS enis_tp;"
+                        
+                        docker run --rm mysql:latest \
+                            mysql -h ${RDS_ENDPOINT} -P 3306 -u ${RDS_DB_USER} -p${RDS_DB_PASSWORD} -e "SHOW DATABASES;"
+                    """
+                }
+            }
+        }
+        
         stage('Build Frontend Docker Image') {
             steps {
                 dir('enis-app-tp/frontend') {
@@ -40,6 +46,7 @@ pipeline {
                 }
             }
         }
+
         stage('Build Backend Docker Image') {
             steps {
                 dir('enis-app-tp/backend') {
@@ -51,15 +58,18 @@ pipeline {
                 }
             }
         }
+
         stage('Login to AWS ECR') {
             steps {
                 script {
+                    echo 'Logging into AWS ECR...'
                     sh """
                         aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO_URL}
                     """
                 }
             }
         }
+
         stage('Tag and Push Frontend Image') {
             steps {
                 script {
@@ -69,6 +79,7 @@ pipeline {
                 }
             }
         }
+
         stage('Tag and Push Backend Image') {
             steps {
                 script {
