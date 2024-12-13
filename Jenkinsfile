@@ -12,19 +12,23 @@ pipeline {
         IMAGE_REPO            = "${ECR_REPO_URL}/${ECR_REPO_NAME}"
         AWS_REGION            = "us-east-1"
     }
-    stages {
-        stage('Create Database in RDS') {
-            steps {
-                script {
-                    sh """
-                        docker run --rm mysql:latest \
-                        mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "CREATE DATABASE IF NOT EXISTS enis_tp;"
-                        docker run --rm mysql:latest \
-                        mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "SHOW DATABASES;"
-                    """
-                }
-            }
+   stage('Create Database in RDS') {
+    steps {
+        script {
+            sh """
+                if [ -z \"${RDS_ENDPOINT}\" ]; then
+                    echo "Error: RDS_ENDPOINT is empty"
+                    exit 1
+                fi
+                docker run --rm mysql:latest \
+                mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "CREATE DATABASE IF NOT EXISTS enis_tp;"
+                docker run --rm mysql:latest \
+                mysql -h ${RDS_ENDPOINT} -P 3306 -u dbuser -pDBpassword2024 -e "SHOW DATABASES;"
+            """
         }
+    }
+}
+
         stage('Build Frontend Docker Image') {
             steps {
                 dir('enis-app-tp/frontend') {
