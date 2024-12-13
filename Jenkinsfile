@@ -13,7 +13,7 @@ pipeline {
         AWS_REGION            = "us-east-1"
     }
    stages{
-        stage('Create Database in RDS') {
+      stage('Create Database in RDS') {
     steps {
         script {
             sh """
@@ -23,6 +23,7 @@ pipeline {
         }
     }
 }
+
 
         
         stage('Build Frontend Docker Image') {
