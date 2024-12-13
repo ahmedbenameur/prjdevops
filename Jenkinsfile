@@ -1,4 +1,3 @@
-
 def EC2_PUBLIC_IP = ""
 def RDS_ENDPOINT = ""
 def DEPLOYER_KEY_URI = ""  
@@ -13,14 +12,15 @@ pipeline {
         IMAGE_REPO            = "${ECR_REPO_URL}/${ECR_REPO_NAME}"
         AWS_REGION            = "us-east-1"
     }
-     stage('Provision Server and Database') {
+    stages {
+        stage('Provision Server and Database') {
             steps {
                 script {
-                    
                     dir('my-terraform-project') {
                         sh "terraform init"
                         sh "terraform plan -lock=false"
                         sh "terraform apply -lock=false --auto-approve"
+
                         // Capture EC2 Public IP
                         EC2_PUBLIC_IP = sh(
                             script: '''
@@ -30,6 +30,7 @@ pipeline {
                             ''',
                             returnStdout: true
                         ).trim()
+
                         // Capture RDS Endpoint
                         RDS_ENDPOINT = sh(
                             script: '''
@@ -39,9 +40,10 @@ pipeline {
                             ''',
                             returnStdout: true
                         ).trim()
+
                         // Capture Deployer Key URI
                         DEPLOYER_KEY_URI = sh(
-                            script: 'terraform output deployer_key_s3_uri | tr -d \'"\'',
+                            script: 'terraform output deployer_key_s3_uri | tr -d '\"\"',
                             returnStdout: true
                         ).trim()
 
@@ -68,7 +70,6 @@ pipeline {
                 }
             }
         }
-    stages {
         stage('Update Backend Configuration') {
             steps {
                 script {
