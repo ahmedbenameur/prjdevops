@@ -97,46 +97,61 @@ pipeline {
         stage('Create Database in RDS') {
             steps {
                 echo 'Database creation placeholder: Assuming success.'
+                sh 'sleep 3'
             }
         }
         stage('Build Frontend Docker Image') {
             steps {
                 echo 'Frontend Docker Image build placeholder: Assuming success.'
+                sh 'sleep 25'
             }
         }
         stage('Build Backend Docker Image') {
             steps {
                 echo 'Backend Docker Image build placeholder: Assuming success.'
+                sh 'sleep 4'
             }
         }
         stage('Login to AWS ECR') {
             steps {
                 echo 'AWS ECR login placeholder: Assuming success.'
+                sh 'sleep 3'
             }
         }
         stage('Tag and Push Frontend Image') {
             steps {
                 echo 'Frontend image tagging and pushing placeholder: Assuming success.'
+                sh 'sleep 5'
             }
         }
         stage('Tag and Push Backend Image') {
             steps {
                 echo 'Backend image tagging and pushing placeholder: Assuming success.'
+                sh 'sleep 10'
             }
         }
         stage('Download SSH Key from S3') {
             steps {
                 echo 'SSH Key download placeholder: Assuming success.'
+                sh 'sleep 2'
             }
         }
         stage('Update Hosts File') {
             steps {
                 echo 'Hosts file update placeholder: Assuming success.'
+                sh 'sleep 1'
+            }
+        }
+         stage('Check Ansible Version') {
+            steps {
+                echo 'Hosts file update placeholder: Assuming success.'
+                sh 'sleep 1'
             }
         }
         stage('Run Ansible Playbook') {
             steps {
                 echo 'Ansible playbook execution placeholder: Assuming success.'
+                sh 'sleep 180'
             }
         }
     }
