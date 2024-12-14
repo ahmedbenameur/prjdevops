@@ -140,14 +140,14 @@ pipeline {
             }
         }
     }
-    post {
-        success {
-            echo 'Pipeline completed successfully.'
-            def instanceUrl = "http://${EC2_PUBLIC_IP}:81"
-            echo "The instance is successfully deployed. Access it here: ${instanceUrl}"
-        }
-        failure {
-            echo 'Pipeline failed: Please check the logs for details.'
-        }
+   post {
+    success {
+        echo 'Pipeline completed successfully.'
+       
     }
+    failure {
+        echo 'Pipeline failed: Please check the logs for details.'
+    }
+}
+
 }
